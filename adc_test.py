@@ -8,6 +8,13 @@ import socket
 import sys
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
+import socket
+
+#Setup socket connection
+
+HOST = "192.168.56.1"  # 137.1 The server's hostname or IP address
+PORT = 631  # The port used by the server
+
 
 
 #system setup for temp sensor
@@ -65,11 +72,14 @@ def read_temp():
 
 
 print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('voltage_pH','pH','voltage_Turb','Turb','Temp'))
-
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.connect((HOST, PORT))
 while True:
     turb = 1
     ph = (-5.56548 * chan_pH.voltage) +15.509
     print("\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}".format(chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]))
-    
+    #s.connect((HOST, PORT))
+    data = [chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]]
+    s.sendall(str(data).encode())
     time.sleep(0.5)
 
