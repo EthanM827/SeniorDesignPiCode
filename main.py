@@ -88,7 +88,7 @@ while True:
     # s.sendall returns None if all data was successfully sent
     if (s.sendall(str(data).encode()) != None):
         # if connection issue raised, reset connection and attempt to reconnect after waiting 1 second
-        print("Connection lost. Attempting to reconnect.\n")
+        print("Data not sent. Restarting connection.\n")
         time.sleep(1)
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.connect((HOST, PORT))
