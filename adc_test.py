@@ -9,6 +9,8 @@ import sys
 import adafruit_ads1x15.ads1115 as ADS
 from adafruit_ads1x15.analog_in import AnalogIn
 import socket
+from datetime import datetime
+
 
 #Setup socket connection
 
@@ -74,12 +76,14 @@ def read_temp():
 print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('voltage_pH','pH','voltage_Turb','Turb','Temp'))
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
+messageID = 0
 while True:
     turb = 1
     ph = (-5.56548 * chan_pH.voltage) +15.509
     print("\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}".format(chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]))
     #s.connect((HOST, PORT))
-    data = [chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]]
+    #data = [chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]]
+    data = [messageID, ph,chan_turb.voltage,read_temp()[1]]
     s.sendall(str(data).encode())
-    time.sleep(0.5)
+    messageID = messageID + 1
 
