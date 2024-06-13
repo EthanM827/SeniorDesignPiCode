@@ -76,23 +76,29 @@ def read_temp():
 print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('voltage_pH','pH','voltage_Turb','Turb','Temp'))
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
-s.settimeout(5) # set timeout value of 5 seconds
 messageID = 0
+expectedACK = 0
 while True:
+    expectedACK = messageID
     turb = 1
     ph = (-5.56548 * chan_pH.voltage) +15.509
     print("\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}".format(chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]))
     #s.connect((HOST, PORT))
     #data = [chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]]
     data = [messageID, ph,chan_turb.voltage,read_temp()[1]]
-    # s.sendall returns None if all data was successfully sent
-    if (s.sendall(str(data).encode()) != None):
-        # if connection issue raised, reset connection and attempt to reconnect after waiting 1 second
-        print("Data not sent. Restarting connection.\n")
+    s.sendall(str(data).encode())
+
+    count = 0
+    timeoutLength = 5 # time in seconds to wait before assuming connection has been lost
+    while(ack != expectedACK and count < timeoutLength):
+        count = count + 1
         time.sleep(1)
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((HOST, PORT))
-        print("Successfully reconnected.\n")
+        ack = s.recv(1024)
+        if not ack:
+            ack = -1
+
+    if (ack != expectedACK):
+        print("Connection lost.")
 
     messageID = messageID + 1
 
