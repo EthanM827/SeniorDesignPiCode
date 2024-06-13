@@ -88,9 +88,13 @@ while True:
     data = [messageID, ph,chan_turb.voltage,read_temp()[1]]
     s.sendall(str(data).encode())
 
+    ack = s.recv(1024)
+    if not ack:
+        ack = -1
     count = 0
     timeoutLength = 5 # time in seconds to wait before assuming connection has been lost
     while(ack != expectedACK and count < timeoutLength):
+        print("test\n")
         count = count + 1
         time.sleep(1)
         ack = s.recv(1024)
