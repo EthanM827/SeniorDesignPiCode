@@ -75,31 +75,40 @@ def read_temp():
 
 print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('voltage_pH','pH','voltage_Turb','Turb','Temp'))
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.connect((HOST, PORT))
+s.settimeout(3)
+connected = False
 messageID = 0
-expectedACK = 0
 while True:
-    expectedACK = messageID
+    if messageID % 5 == 0:
+        if connected:
+            s.close()
+            
+        print("Disconnecting...")
+        connected = False
+        try:
+            print("Attempting to connect...")
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(3)
+            s.connect((HOST, PORT))
+            connected = True
+            print("Success.")
+        except:
+            print("Failed.")
     turb = 1
     ph = (-5.56548 * chan_pH.voltage) +15.509
     print("\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}".format(chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]))
     #s.connect((HOST, PORT))
     #data = [chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]]
     data = [messageID, ph,chan_turb.voltage,read_temp()[1]]
-    encoded_data = str(data).encode()
-    s.sendall(encoded_data)
-
-    ack = s.recv(1024)
-    count = 0
-    timeoutLength = 5 # time in seconds to wait before assuming connection has been lost
-    while(ack != encoded_data and count < timeoutLength):
-        print("test\n")
-        count = count + 1
-        time.sleep(1)
-        ack = s.recv(1024)
-
-    if (ack != expectedACK):
-        print("Connection timed out.")
-
+    if connected:
+        try:
+            s.sendall(str(data).encode())
+        except:
+            print("Connection lost, data not sent.")
+            connected = False
+    else:
+        print("No connection, data not sent.")
     messageID = messageID + 1
+    time.sleep(0.5)
+
 
