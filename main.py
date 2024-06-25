@@ -100,7 +100,7 @@ while True:
 
     pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
     DO = (chan_DO.voltage / constant_DO) * 100
-    data = [messageID, pH, read_temp()[1], DO.voltage, chan_ORP.voltage]
+    data = [messageID, pH, read_temp()[1], DO, chan_ORP.voltage]
     data_str = ""
     for i in data:
         data_str = data_str + "\t" + str(i)
