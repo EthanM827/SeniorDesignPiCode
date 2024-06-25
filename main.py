@@ -98,7 +98,7 @@ while True:
 
 
     now = datetime.utcnow()
-    dt = datetime.strptime(now, '%Y-%m-%d-%H-%M')
+    dt = datetime.strptime(str(now), '%Y-%m-%d-%H-%M')
     time = dt.time()
 
     pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
