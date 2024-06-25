@@ -11,13 +11,9 @@ from adafruit_ads1x15.analog_in import AnalogIn
 import socket
 from datetime import datetime
 
-
 #Setup socket connection
-
 HOST = "192.168.56.1"  # 137.1 The server's hostname or IP address
 PORT = 631  # The port used by the server
-
-
 
 #system setup for temp sensor
 os.system('modprobe w1-gpio')
@@ -26,26 +22,24 @@ base_dir = '/sys/bus/w1/devices/'
 device_folder = glob.glob(base_dir + '28*')[0]
 device_file = device_folder + '/w1_slave'
 
-#Setup GPIO numbering NOT BOARD
-GPIO.setup(1,GPIO.IN,pull_up_down=GPIO.PUD_UP)
+
 # Create the I2C bus
 i2c = busio.I2C(board.SCL, board.SDA)
 
 # Create the ADC object using the I2C bus
 ads = ADS.ADS1115(i2c)
 
-# Create single-ended input on channel 0
-chan_turb = AnalogIn(ads, ADS.P1) #Turbidity
-chan_pH = AnalogIn(ads, ADS.P2)
+# Set up input pins
+# One-wire interface inputs (use GPIO pin numbering)
+GPIO.setup(1,GPIO.IN,pull_up_down=GPIO.PUD_UP) # GPIO pin 1 - Temperature
 
-# Create differential input between channel 0 and 1
-#chan = AnalogIn(ads, ADS.P0, ADS.P1)
-
-
-
-
+# ADC inputs
+chan_DO = AnalogIn(ads, ADS.P1) # ADC pin 1 - Dissolved Oxygen
+chan_pH = AnalogIn(ads, ADS.P2) # ADC pin 2 - pH
+chan_ORP = AnalogIn(ads, ADS.P3) # ADC pin 3 - Oxidation Reduction Potential 
 
 
+# Temperature functions
 def read_temp_raw():
     f = open(device_file, 'r')
     lines = f.readlines()
@@ -65,26 +59,30 @@ def read_temp():
         return temp_c, temp_f
 
 
-
-
-
-
-
-
-
-
-print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('voltage_pH','pH','voltage_Turb','Turb','Temp'))
+# Establish socket used for TCP connections
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+# Set timeout for all TCP operations to 3 seconds
 s.settimeout(3)
+
 connected = False
 messageID = 0
+
+# Print data header
+print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('Message_ID','pH','Temp','DO_voltage','ORP_Voltage'))
 while True:
+    # Reset TCP connection every five cycles
     if messageID % 5 == 0:
+        # Close connection if already connected
         if connected:
             s.close()
+            print("Resetting connection.")
+            connected = False
+        else:
+            print("No connection detected.")
             
-        print("Disconnecting...")
-        connected = False
+        
+        # Try to connect over TCP, timeout after 3 seconds
         try:
             print("Attempting to connect...")
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -94,12 +92,18 @@ while True:
             print("Success.")
         except:
             print("Failed.")
-    turb = 1
-    ph = (-5.56548 * chan_pH.voltage) +15.509
-    print("\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}".format(chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]))
-    #s.connect((HOST, PORT))
-    #data = [chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]]
-    data = [messageID, ph,chan_turb.voltage,read_temp()[1]]
+
+
+
+    pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
+    data = [messageID, pH, read_temp()[1], chan_DO.voltage, chan_ORP.voltage]
+    data_str = ""
+    for i in data:
+        data_str = data_str + "\t" + str(i)
+
+    print(data_str)
+
+    #print("\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}".format(chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]))
     if connected:
         try:
             s.sendall(str(data).encode())
