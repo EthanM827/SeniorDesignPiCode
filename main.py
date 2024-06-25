@@ -71,8 +71,10 @@ s.settimeout(3)
 connected = False
 messageID = 0
 
+current_time = datetime.utcnow()
+
 # Print data header
-print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('Message_ID','pH','Temp','DO','ORP_Voltage'))
+print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('Time','pH','Temp','DO','ORP_Voltage'))
 while True:
     # Reset TCP connection every five cycles
     if messageID % 5 == 0:
@@ -97,10 +99,13 @@ while True:
             print("Failed.")
 
 
+    current_time = datetime.utcnow()
 
     pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
     DO = (chan_DO.voltage / constant_DO) * 100
-    data = [messageID, pH, read_temp()[1], DO, chan_ORP.voltage]
+    if DO > 100:
+        DO = 100
+    data = [current_time, pH, read_temp()[1], DO, chan_ORP.voltage]
     data_str = ""
     for i in data:
         data_str = data_str + "\t" + str(i)
@@ -114,8 +119,6 @@ while True:
         except:
             print("Connection lost, data not sent.")
             connected = False
-    else:
-        print("No connection, data not sent.")
     messageID = messageID + 1
     time.sleep(0.5)
 
