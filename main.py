@@ -11,11 +11,14 @@ from adafruit_ads1x15.analog_in import AnalogIn
 import socket
 from datetime import datetime
 
-#Setup socket connection
+# Calibration Constants
+constant_DO = 0.0145
+
+# Setup socket connection
 HOST = "192.168.56.1"  # 137.1 The server's hostname or IP address
 PORT = 631  # The port used by the server
 
-#system setup for temp sensor
+# System setup for temp sensor
 os.system('modprobe w1-gpio')
 os.system('modprobe w1-therm')
 base_dir = '/sys/bus/w1/devices/'
@@ -69,7 +72,7 @@ connected = False
 messageID = 0
 
 # Print data header
-print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('Message_ID','pH','Temp','DO_voltage','ORP_Voltage'))
+print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('Message_ID','pH','Temp','DO','ORP_Voltage'))
 while True:
     # Reset TCP connection every five cycles
     if messageID % 5 == 0:
@@ -96,7 +99,8 @@ while True:
 
 
     pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
-    data = [messageID, pH, read_temp()[1], chan_DO.voltage, chan_ORP.voltage]
+    DO = (chan_DO.voltage / constant_DO) * 100
+    data = [messageID, pH, read_temp()[1], DO.voltage, chan_ORP.voltage]
     data_str = ""
     for i in data:
         data_str = data_str + "\t" + str(i)
