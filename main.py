@@ -71,8 +71,6 @@ s.settimeout(3)
 connected = False
 messageID = 0
 
-current_time = datetime.utcnow()
-
 # Print data header
 print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('Time','pH','Temp','DO','ORP_Voltage'))
 while True:
@@ -99,13 +97,15 @@ while True:
             print("Failed.")
 
 
-    current_time = datetime.utcnow()
+    now = datetime.utcnow()
+    dt = datetime.strptime(now, '%Y-%m-%d-%H-%M')
+    time = dt.time()
 
     pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
     DO = (chan_DO.voltage / constant_DO) * 100
     if DO > 100:
         DO = 100
-    data = [current_time, pH, read_temp()[1], DO, chan_ORP.voltage]
+    data = [time, pH, read_temp()[1], DO, chan_ORP.voltage]
     data_str = ""
     for i in data:
         data_str = data_str + "\t" + str(i)
