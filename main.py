@@ -97,15 +97,15 @@ while True:
             print("Failed.")
 
 
-    now = datetime.utcnow()
-    dt = datetime.strptime(str(now), '%Y-%m-%d-%H-%M')
-    time = dt.time()
+    now = datetime.now()
+    current_time = now.time()
+    
 
     pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
     DO = (chan_DO.voltage / constant_DO) * 100
     if DO > 100:
         DO = 100
-    data = [time, pH, read_temp()[1], DO, chan_ORP.voltage]
+    data = [current_time, pH, read_temp()[1], DO, chan_ORP.voltage]
     data_str = ""
     for i in data:
         data_str = data_str + "\t" + str(i)
