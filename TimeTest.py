@@ -73,7 +73,8 @@ messageID = 0
 
 # Print data header
 print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('Time','pH','Temp','DO','ORP_Voltage'))
-time.clock_settime(time.CLOCK_BOOTTIME, 0)
+time.clock_settime_ns(time.CLOCK_REALTIME, 0)
+runtime = 0
 while True:
     # Reset TCP connection every five cycles
     if messageID % 5 == 0:
@@ -98,14 +99,13 @@ while True:
             print("Failed.")
 
 
-    current_runtime = time.clock_gettime(time.CLOCK_BOOTTIME)
-    
+    runtime = time.clock_gettime_ns(time.CLOCK_REALTIME)
 
     pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
     DO = (chan_DO.voltage / constant_DO) * 100
     if DO > 100:
         DO = 100
-    data = [current_runtime, pH, read_temp()[1], DO, chan_ORP.voltage]
+    data = [runtime, pH, read_temp()[1], DO, chan_ORP.voltage]
     data_str = ""
     for i in data:
         data_str = data_str + "\t" + str(i)
