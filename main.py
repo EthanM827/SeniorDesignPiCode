@@ -12,7 +12,7 @@ import socket
 from datetime import datetime
 
 # Calibration Constants
-constant_DO = 0.0116
+constant_DO = 0.0145
 
 # Setup socket connection
 HOST = "192.168.56.1"  # 137.1 The server's hostname or IP address
@@ -72,7 +72,8 @@ connected = False
 messageID = 0
 
 # Print data header
-print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('Time','pH','Temp','DO','ORP_Voltage'))
+print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('Runtime','pH','Temp','DO','ORP_Voltage'))
+start_time_ns = time.clock_gettime_ns(time.CLOCK_REALTIME)
 while True:
     # Reset TCP connection every five cycles
     if messageID % 5 == 0:
@@ -96,24 +97,34 @@ while True:
         except:
             print("Failed.")
 
-
-    now = datetime.now()
-    current_time = now.time()
-    
+            
+    runtime_ns = time.clock_gettime_ns(time.CLOCK_REALTIME) - start_time_ns
+    runtime_s = float(runtime_ns) * pow(10, -9)
 
     pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
-    DO = (chan_DO.voltage / constant_DO) * 100
-    # Set ceiling for DO at 100%
+
+    temp = read_temp()[1] # Read temperature sensor
+
+    DO = (chan_DO.voltage / constant_DO) * 100 # Calibrated DO formula from AS DO board datasheet
+
+    ORP_V = chan_ORP.voltage - 1.5 # ORP = voltage - 1500mV from AS ORP board datasheet
+    ORP = ORP_V * 1000 # Convert from V to mV
+
+    # bound DO ceiling at 100%
     if DO > 100:
         DO = 100
-    data = [str(current_time), pH, read_temp()[1], DO, chan_ORP.voltage]
-    data_str = ""
-    for i in data:
-        data_str = data_str + "\t" + str(i)
+
+    # bound pH floor and ceiling from 0->15
+    if pH > 15:
+        pH = 15
+    elif pH < 0:
+        pH = 0
+
+    data = [runtime_s, pH, temp, DO, ORP]
+    data_str = "\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}".format(data)
 
     print(data_str)
 
-    #print("\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}".format(chan_pH.voltage,ph,chan_turb.voltage,turb,read_temp()[1]))
     if connected:
         try:
             s.sendall(str(data).encode())
