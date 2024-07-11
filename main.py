@@ -12,7 +12,7 @@ import socket
 from datetime import datetime
 
 # Calibration Constants
-constant_DO = 0.0145
+constant_DO = 0.0116
 
 # Setup socket connection
 HOST = "192.168.56.1"  # 137.1 The server's hostname or IP address
@@ -103,9 +103,10 @@ while True:
 
     pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
     DO = (chan_DO.voltage / constant_DO) * 100
+    # Set ceiling for DO at 100%
     if DO > 100:
         DO = 100
-    data = [current_time, pH, read_temp()[1], DO, chan_ORP.voltage]
+    data = [str(current_time), pH, read_temp()[1], DO, chan_ORP.voltage]
     data_str = ""
     for i in data:
         data_str = data_str + "\t" + str(i)
