@@ -74,64 +74,67 @@ messageID = 0
 # Print data header
 print("{:>5}\t{:>5}\t{:>5}\t{:>5}\t{:>5}".format('Runtime','pH','Temp','DO','ORP_Voltage'))
 start_time_ns = time.clock_gettime_ns(time.CLOCK_REALTIME)
-while True:
-    # Reset TCP connection every five cycles
-    if messageID % 5 == 0:
-        # Close connection if already connected
+try:
+    while True:
+        # Reset TCP connection every five cycles
+        if messageID % 5 == 0:
+            # Close connection if already connected
+            if connected:
+                s.close()
+                print("Resetting connection.")
+                connected = False
+            else:
+                print("No connection detected.")
+                
+            
+            # Try to connect over TCP, timeout after 3 seconds
+            try:
+                print("Attempting to connect...")
+                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                s.settimeout(3)
+                s.connect((HOST, PORT))
+                connected = True
+                print("Success.")
+            except:
+                print("Failed.")
+
+                
+        runtime_ns = time.clock_gettime_ns(time.CLOCK_REALTIME) - start_time_ns
+        runtime_s = float(runtime_ns) * pow(10, -9)
+
+        pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
+
+        temp = read_temp()[1] # Read temperature sensor
+
+        DO = (chan_DO.voltage / constant_DO) * 100 # Calibrated DO formula from AS DO board datasheet
+
+        ORP_V = chan_ORP.voltage - 1.5 # ORP = voltage - 1500mV from AS ORP board datasheet
+        ORP = ORP_V * 1000 # Convert from V to mV
+
+        # bound DO ceiling at 100%
+        if DO > 100:
+            DO = 100
+
+        # bound pH floor and ceiling from 0->15
+        if pH > 15:
+            pH = 15
+        elif pH < 0:
+            pH = 0
+
+        data = [runtime_s, pH, temp, DO, ORP]
+        data_str = "{:.2f}s\t{:.2f}\t{:.2f}F\t{:.2f}%\t{:.2f}mV".format(*data)
+
+        print(data_str)
+
         if connected:
-            s.close()
-            print("Resetting connection.")
-            connected = False
-        else:
-            print("No connection detected.")
-            
-        
-        # Try to connect over TCP, timeout after 3 seconds
-        try:
-            print("Attempting to connect...")
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            s.settimeout(3)
-            s.connect((HOST, PORT))
-            connected = True
-            print("Success.")
-        except:
-            print("Failed.")
+            try:
+                s.sendall(str(data).encode())
+            except:
+                print("Connection lost, data not sent.")
+                connected = False
+        messageID = messageID + 1
+        time.sleep(0.5)
 
-            
-    runtime_ns = time.clock_gettime_ns(time.CLOCK_REALTIME) - start_time_ns
-    runtime_s = float(runtime_ns) * pow(10, -9)
-
-    pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
-
-    temp = read_temp()[1] # Read temperature sensor
-
-    DO = (chan_DO.voltage / constant_DO) * 100 # Calibrated DO formula from AS DO board datasheet
-
-    ORP_V = chan_ORP.voltage - 1.5 # ORP = voltage - 1500mV from AS ORP board datasheet
-    ORP = ORP_V * 1000 # Convert from V to mV
-
-    # bound DO ceiling at 100%
-    if DO > 100:
-        DO = 100
-
-    # bound pH floor and ceiling from 0->15
-    if pH > 15:
-        pH = 15
-    elif pH < 0:
-        pH = 0
-
-    data = [runtime_s, pH, temp, DO, ORP]
-    data_str = "\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}\t{:>5.2f}".format(data)
-
-    print(data_str)
-
-    if connected:
-        try:
-            s.sendall(str(data).encode())
-        except:
-            print("Connection lost, data not sent.")
-            connected = False
-    messageID = messageID + 1
-    time.sleep(0.5)
-
-
+except KeyboardInterrupt:
+    print("CTRL+C Pressed, Exiting.")
+    pass
