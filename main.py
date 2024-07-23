@@ -115,9 +115,11 @@ try:
         ORP_V = chan_ORP.voltage - 1.5 # ORP = voltage - 1500mV from AS ORP board datasheet
         ORP = ORP_V * 1000 # Convert from V to mV
 
-        # bound DO ceiling at 100%
+        # bound DO ceiling at 100%, and floor at 0%
         if DO > 100:
             DO = 100
+        elif DO < 0:
+            DO = 0
 
         # bound pH floor and ceiling from 0->15
         if pH > 15:
