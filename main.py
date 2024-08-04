@@ -13,6 +13,10 @@ from datetime import datetime
 
 # Calibration Constants
 constant_DO = 0.0145
+pH_mid = 1150 # mV
+pH_low = 1700 # mV
+pH_high = 900 # mV
+
 
 # Setup socket connection
 HOST = "192.168.56.1"  # 137.1 The server's hostname or IP address
@@ -106,7 +110,11 @@ try:
         runtime_ns = time.clock_gettime_ns(time.CLOCK_REALTIME) - start_time_ns
         runtime_s = float(runtime_ns) * pow(10, -9)
 
-        pH = 15.509 + (-5.56548 * chan_pH.voltage) # Voltage -> pH formula from Atlas Scientific pH board datasheet
+        pH_voltage_mV = chan_pH.voltage * 1000;
+        if (pH_voltage_mV > pH_mid):
+            pH = 7.0 - 3.0 / (pH_low - pH_mid) * (pH_voltage_mV - pH_mid)
+        else:
+            pH = 7.0 - 3.0 / (pH_low - pH_mid) * (pH_voltage_mV - pH_mid);
 
         temp = read_temp()[1] # Read temperature sensor
 
